@@ -167,6 +167,15 @@ class WavinWTC3Api:
             self._client = None
 
     async def _call(self, method: str, *args: Any, **kwargs: Any) -> Any:
+        # SECURITY: Only explicitly permitted Modbus read operations.
+        # All Modbus writes are blocked.
+        allowed_methods = {"read_holding_registers", "read_coils"}
+
+        if method not in allowed_methods:
+            raise WavinWTC3Error(
+                f"SECURITY: Modbus operation blocked: {method}"
+            )
+
         client = await self._ensure_client()
         func = getattr(client, method)
         try:
@@ -345,37 +354,7 @@ class WavinWTC3Api:
 
         global_bits = await self.read_coils_chunked(COIL_GLOBAL_ONOFF, 3)
         state.global_on, state.global_comfort, state.global_cooling = global_bits
-        # Keep the active comfort/reference setpoint fixed and use only the
-        # DRT-300 wheel for room target changes. Economy setpoints are left
-        # untouched. Cooling retains the previously verified 24 °C behaviour;
-        # heating is fixed to 25 °C (raw 250, verified on the physical DRT-300).
-        forced_raw = (
-            FORCED_COOLING_SETPOINT_RAW
-            if state.global_cooling
-            else FORCED_HEATING_SETPOINT_RAW
-        )
-        setpoint_offset = 0 if state.global_cooling else 1
-        mode_name = "hűtési" if state.global_cooling else "fűtési"
-        target_name = "24 °C" if state.global_cooling else "25 °C"
-
-        for zone in range(1, zone_count + 1):
-            si = (zone - 1) * REG_SETPOINT_STRIDE + setpoint_offset
-            current_raw = setpoint_regs[si]
-            if current_raw in (0xFFFF, 0xFFFE):
-                continue  # invalid/fault reading, do not overwrite
-            if current_raw == forced_raw:
-                continue
-
-            address = REG_SETPOINT_BASE + si
-            try:
-                await self.write_register(address, forced_raw, verify=True)
-                setpoint_regs[si] = forced_raw
-            except WavinWTC3Error as err:
-                _LOGGER.warning(
-                    "Nem sikerült a %d. zóna %s alapjelét %s-ra állítani: %s",
-                    zone, mode_name, target_name, err,
-                )
-
+        
         status_bits = await self.read_coils_chunked(COIL_ZONE_STATUS_BASE, COIL_ZONE_STATUS_STRIDE * zone_count)
         lock_bits = await self.read_coils_chunked(COIL_LOCK_READ_BASE, zone_count)
         fault_bits = await self.read_coils_chunked(COIL_HEAT_OUT, 7)
