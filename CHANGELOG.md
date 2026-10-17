@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.0.3] - 2026-10-17
+
+### Security
+- Added a read-only Modbus operation allowlist.
+- Blocked all Modbus write operations.
+- Removed automatic setpoint writes during polling.
+- Prevented Home Assistant from changing global
+  heating/cooling, comfort/economy and ON/OFF settings
+  through the existing Wavin API.
+
+### Notes
+- Initial read-only version for testing.
+- Temperature and system status monitoring only.
+- Setpoint control intentionally disabled.
+- Not yet validated on the target WTC-3 hardware.
+
 ## [1.0.2] - 2026-09-30
 
 ### Fixed
