@@ -7,11 +7,11 @@
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/ghalbihi/Wavin-WTC-Net-HA-integration",
+  "integration_type": "hub",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/ghalbihi/Wavin-WTC-Net-HA-integration/issues",
   "requirements": [
     "pymodbus>=3.8.0"
   ],
-  "version": "1.0.3",
-  "integration_type": "hub"
+  "version": "1.0.3"
 }
