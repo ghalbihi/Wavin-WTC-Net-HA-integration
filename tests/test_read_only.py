@@ -157,6 +157,39 @@ class TestReadOnlySecurity(unittest.TestCase):
                     f"Write operation in read_all(): {func.attr}",
                 )
 
+class TestReadOnlyPlatforms(unittest.TestCase):
+    """Ensure that only read-only entities are enabled."""
 
+    def test_only_sensor_platform_enabled(self):
+        const_file = (
+            Path(__file__).resolve().parents[1]
+            / "custom_components"
+            / "wavin_wtc3"
+            / "const.py"
+        )
+
+        tree = ast.parse(
+            const_file.read_text(encoding="utf-8")
+        )
+
+        platforms = None
+
+        for node in tree.body:
+            if not isinstance(node, ast.Assign):
+                continue
+
+            if any(
+                isinstance(target, ast.Name)
+                and target.id == "PLATFORMS"
+                for target in node.targets
+            ):
+                platforms = ast.literal_eval(node.value)
+
+        self.assertEqual(
+            platforms,
+            ["sensor"],
+            "Read-only edition must enable sensor platform only",
+        )
+        
 if __name__ == "__main__":
     unittest.main()
