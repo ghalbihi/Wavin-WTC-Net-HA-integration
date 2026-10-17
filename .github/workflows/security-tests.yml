@@ -1,0 +1,36 @@
+name: Wavin Security Tests
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+jobs:
+  security-tests:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Check Python syntax
+        run: |
+          python -m compileall -q custom_components/wavin_wtc3
+
+      - name: Run security tests
+        run: |
+          python -m unittest discover -s tests -p "test_*.py" -v
