@@ -53,7 +53,6 @@ SYSTEM_SENSORS = [
 ZONE_SENSORS = [
     SensorDescription("temperature", "Helyiség-hőmérséklet", lambda z: z.temperature, UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE),
     SensorDescription("humidity", "Relatív páratartalom", lambda z: z.humidity, PERCENTAGE, SensorDeviceClass.HUMIDITY),
-    SensorDescription("humidity", "Relatív páratartalom", lambda z: z.humidity, PERCENTAGE, SensorDeviceClass.HUMIDITY),
     SensorDescription("dewpoint", "Harmatpont", lambda z: z.dewpoint, UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE),
     SensorDescription("wheel_offset", "Potméter eltérés", lambda z: z.wheel_offset, UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE),
     SensorDescription("lux", "Fényerő", lambda z: z.lux, LIGHT_LUX, SensorDeviceClass.ILLUMINANCE),
