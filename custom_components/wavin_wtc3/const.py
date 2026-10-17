@@ -23,7 +23,9 @@ DEFAULT_ADDRESS_OFFSET = 0
 # The user requested a fixed 30 second polling cycle for every value.
 POLL_INTERVAL_SECONDS = 30
 
-PLATFORMS = ["climate", "switch", "sensor"]
+# SECURITY: Read-only edition.
+# Climate and switch platforms are intentionally disabled.
+PLATFORMS = ["sensor"]
 
 PRESET_COMFORT = "comfort"
 PRESET_ECONOMY = "economy"
