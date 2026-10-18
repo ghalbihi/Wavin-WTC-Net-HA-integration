@@ -168,14 +168,22 @@ class WavinWTC3Api:
             self._client = None
 
     async def _call(self, method: str, *args: Any, **kwargs: Any) -> Any:
-        # SECURITY: Only explicitly permitted Modbus read operations.
-        # All Modbus writes are blocked.
-        allowed_methods = {"read_holding_registers", "read_coils"}
-
+        # Security boundary: no write except explicit single-register wheel write.
+        allowed_methods = {"read_holding_registers", "read_coils", "write_register"}
         if method not in allowed_methods:
-            raise WavinWTC3Error(
-                f"SECURITY: Modbus operation blocked: {method}"
-            )
+            raise WavinWTC3Error(f"SECURITY: blocked Modbus method: {method}")
+        if method == "write_register":
+            # Only an internal capability-enabled call from set_safe_target().
+            # External invocation of _call is not a supported security boundary.
+            if not getattr(self, "_authorized_wheel_write", False):
+                raise WavinWTC3Error("SECURITY: wheel write not authorized")
+            if kwargs or len(args) != 2:
+                raise WavinWTC3Error("SECURITY: invalid write argument format")
+            address, value = args
+            if type(address) is not int or type(value) is not int:
+                raise WavinWTC3Error("SECURITY: invalid write arguments")
+            if address not in (4604, 4605, 4606) or not 0 <= value <= 12:
+                raise WavinWTC3Error("SECURITY: forbidden address or value")
 
         client = await self._ensure_client()
         func = getattr(client, method)
@@ -322,6 +330,47 @@ class WavinWTC3Api:
 
     async def set_global_cooling(self, value: bool) -> None:
         await self.write_coil(COIL_GLOBAL_HC, value)
+
+    async def set_safe_target(self, zone: int, temperature: float, zone_count: int) -> None:
+        """One guarded wheel-position write; no global or Economy mode writes.
+
+        Explicit opt-in remains OFF until field validation of register writes.
+        """
+        if not WAVIN_ALLOW_SETPOINT_WRITES:
+            raise WavinWTC3Error("Setpoint writes disabled until field validation")
+        if self.address_offset != 0:
+            raise WavinWTC3Error("Write requires Modbus address offset 0")
+        if zone_count != 3 or type(zone) is not int or zone not in (1, 2, 3):
+            raise WavinWTC3Error("Write permitted only for configured TH1..TH3")
+        if isinstance(temperature, bool) or not isinstance(temperature, (int, float)):
+            raise WavinWTC3Error("Invalid target temperature")
+        target = float(temperature)
+        if not 15 <= target <= 27 or not target.is_integer():
+            raise WavinWTC3Error("Target must be a whole degree between 15 and 27 °C")
+        position = int(target - DRT300_VERIFIED_HEAT_CENTER + 6)
+        if not 0 <= position <= 12:
+            raise WavinWTC3Error("Calculated wheel position outside permitted range")
+        async with self._lock:
+            # Fresh state reading, under the same lock as the eventual write.
+            globals_ = await self._call("read_coils", 4127, count=3)
+            global_bits = list(globals_.bits[:3])
+            if len(global_bits) != 3 or not global_bits[0] or not global_bits[1] or global_bits[2]:
+                raise WavinWTC3Error("System not in ON / Comfort / heating mode")
+            regs = await self._call("read_holding_registers", REG_CONTROL_STATE, count=1)
+            if not regs.registers or int(regs.registers[0]) != 1:
+                raise WavinWTC3Error("Controller not in stable heating state")
+            zone_bit_address = COIL_ZONE_STATUS_BASE + (zone - 1) * COIL_ZONE_STATUS_STRIDE + 4
+            response = await self._call("read_coils", zone_bit_address, count=4)
+            status = list(response.bits[:4])  # ONOFF, CE, HC, LIVE
+            if len(status) != 4 or not status[0] or not status[1] or status[2] or not status[3]:
+                raise WavinWTC3Error("Zone not online in ON / Comfort / heating mode")
+            address = REG_WHEEL_WRITE_BASE + zone - 1
+            self._authorized_wheel_write = True
+            try:
+                await self._call("write_register", address, position)
+            finally:
+                self._authorized_wheel_write = False
+            # No automatic retry; verify by next polling cycle and physical unit.
 
     async def read_all(self, zone_count: int) -> WavinState:
         """Read all important WTC registers/coils in WTC-NET-safe chunks."""

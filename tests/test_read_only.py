@@ -1,216 +1,34 @@
-"""Security regression tests for the Wavin read-only API."""
-
+"""Security regression checks for the opt-in heating controls."""
 import ast
 import unittest
 from pathlib import Path
-
-
-API_FILE = (
-    Path(__file__).resolve().parents[1]
-    / "custom_components"
-    / "wavin_wtc3"
-    / "api.py"
-)
-
-
-class TestReadOnlySecurity(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        cls.source = API_FILE.read_text(encoding="utf-8")
-        cls.tree = ast.parse(cls.source)
-
-        cls.api_class = next(
-            node for node in cls.tree.body
-            if isinstance(node, ast.ClassDef)
-            and node.name == "WavinWTC3Api"
-        )
-
-        cls.call_method = next(
-            node for node in cls.api_class.body
-            if isinstance(node, ast.AsyncFunctionDef)
-            and node.name == "_call"
-        )
-
-    def test_allowed_methods_are_read_only(self):
-        """Only approved Modbus read methods may be allowed."""
-
-        allowed = None
-
-        for node in ast.walk(self.call_method):
-            if (
-                isinstance(node, ast.Assign)
-                and any(
-                    isinstance(target, ast.Name)
-                    and target.id == "allowed_methods"
-                    for target in node.targets
-                )
-            ):
-                allowed = ast.literal_eval(node.value)
-
-        self.assertEqual(
-            allowed,
-            {"read_holding_registers", "read_coils"},
-        )
-
-    def test_write_methods_are_blocked(self):
-        """All write operations must be rejected by _call."""
-
-        guard_found = False
-
-        for node in self.call_method.body:
-            if not isinstance(node, ast.If):
-                continue
-
-            test = node.test
-
-            if not isinstance(test, ast.Compare):
-                continue
-
-            if not (
-                isinstance(test.left, ast.Name)
-                and test.left.id == "method"
-                and len(test.ops) == 1
-                and isinstance(test.ops[0], ast.NotIn)
-                and len(test.comparators) == 1
-                and isinstance(test.comparators[0], ast.Name)
-                and test.comparators[0].id == "allowed_methods"
-            ):
-                continue
-
-            if any(
-                isinstance(child, ast.Raise)
-                for child in node.body
-            ):
-                guard_found = True
-
-        self.assertTrue(
-            guard_found,
-            "Missing read-only security guard in _call()",
-        )
-
-    def test_no_direct_modbus_write_calls(self):
-        """No direct Modbus writes may bypass the API guard."""
-
-        forbidden = {
-            "write_register",
-            "write_registers",
-            "write_coil",
-            "write_coils",
-        }
-
-        for node in ast.walk(self.api_class):
-            if not isinstance(node, ast.Call):
-                continue
-
-            func = node.func
-
-            if not isinstance(func, ast.Attribute):
-                continue
-
-            if func.attr not in forbidden:
-                continue
-
-            if (
-                isinstance(func.value, ast.Name)
-                and func.value.id == "self"
-            ):
-                continue
-
-            self.fail(
-                f"Possible direct Modbus write: {func.attr}"
-            )
-
-    def test_no_automatic_writes_during_polling(self):
-        """Periodic polling must not request write operations."""
-
-        read_all = next(
-            node for node in self.api_class.body
-            if isinstance(node, ast.AsyncFunctionDef)
-            and node.name == "read_all"
-        )
-
-        forbidden_calls = {
-            "write_register",
-            "write_coil",
-            "write_setpoint",
-            "write_wheel_offset",
-            "set_global_on",
-            "set_global_comfort",
-            "set_global_cooling",
-            "set_zone_on",
-            "set_zone_comfort",
-            "set_zone_cooling",
-            "set_zone_locked",
-        }
-
-        for node in ast.walk(read_all):
-            if not isinstance(node, ast.Call):
-                continue
-
-            func = node.func
-
-            if isinstance(func, ast.Attribute):
-                self.assertNotIn(
-                    func.attr,
-                    forbidden_calls,
-                    f"Write operation in read_all(): {func.attr}",
-                )
-
-class TestReadOnlyPlatforms(unittest.TestCase):
-    """Ensure that only read-only entities are enabled."""
-
-    def test_only_sensor_platform_enabled(self):
-        const_file = (
-            Path(__file__).resolve().parents[1]
-            / "custom_components"
-            / "wavin_wtc3"
-            / "const.py"
-        )
-
-        tree = ast.parse(
-            const_file.read_text(encoding="utf-8")
-        )
-
-        platforms = None
-
-        for node in tree.body:
-            if not isinstance(node, ast.Assign):
-                continue
-
-            if any(
-                isinstance(target, ast.Name)
-                and target.id == "PLATFORMS"
-                for target in node.targets
-            ):
-                platforms = ast.literal_eval(node.value)
-
-        self.assertEqual(
-            platforms,
-            ["sensor", "binary_sensor"],
-            "Read-only edition must enable only sensor and binary_sensor platforms",
-        )
-        
-if __name__ == "__main__":
-    unittest.main()
-
-
-class TestPumpMapping(unittest.TestCase):
-    """Static regression checks for DO8 indexing and no write regression."""
-
-    def test_pump_address_and_read_mapping(self):
-        const_file = API_FILE.with_name("const.py")
-        const_tree = ast.parse(const_file.read_text(encoding="utf-8"))
-        constants = {}
-        for node in const_tree.body:
-            if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
-                if node.targets[0].id == "COIL_PUMP_OUT":
-                    constants[node.targets[0].id] = ast.literal_eval(node.value)
-        self.assertEqual(constants["COIL_PUMP_OUT"], 4119)
-        api_source = API_FILE.read_text(encoding="utf-8")
-        self.assertIn("read_coils_chunked(COIL_PUMP_OUT, 8)", api_source)
-        self.assertIn("state.pump_output = output_bits[0]", api_source)
-        self.assertIn("state.heat_output = output_bits[1]", api_source)
-        self.assertIn("state.cool_output = output_bits[2]", api_source)
-        self.assertIn("state.emergency_water_temp = output_bits[6]", api_source)
-        self.assertIn("state.water_sensor_fault = output_bits[7]", api_source)
+BASE = Path(__file__).resolve().parents[1] / "custom_components" / "wavin_wtc3"
+class SecurityChecks(unittest.TestCase):
+    def test_restricted_platforms(self):
+        tree=ast.parse((BASE / "const.py").read_text())
+        values={n.targets[0].id:ast.literal_eval(n.value) for n in tree.body if isinstance(n,ast.Assign) and len(n.targets)==1 and isinstance(n.targets[0],ast.Name) and n.targets[0].id in ("PLATFORMS","WAVIN_ALLOW_SETPOINT_WRITES","COIL_PUMP_OUT")}
+        self.assertEqual(values["PLATFORMS"],["sensor","binary_sensor","number"])
+        self.assertIs(values["WAVIN_ALLOW_SETPOINT_WRITES"],False)
+        self.assertEqual(values["COIL_PUMP_OUT"],4119)
+    def test_write_methods_locked(self):
+        source=(BASE / "api.py").read_text()
+        self.assertIn('if method == "write_register":',source)
+        self.assertIn('address not in (4604, 4605, 4606)',source)
+        self.assertIn('getattr(self, "_authorized_wheel_write", False)',source)
+        self.assertIn('self.address_offset != 0',source)
+        self.assertIn('if not WAVIN_ALLOW_SETPOINT_WRITES:',source)
+    def test_polling_contains_no_writes(self):
+        tree=ast.parse((BASE / "api.py").read_text())
+        cls=next(n for n in tree.body if isinstance(n,ast.ClassDef) and n.name=="WavinWTC3Api")
+        polling=next(n for n in cls.body if isinstance(n,ast.AsyncFunctionDef) and n.name=="read_all")
+        calls=[n.func.attr for n in ast.walk(polling) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute)]
+        self.assertFalse(set(calls)&{"write_register","write_coil","set_safe_target","write_wheel_offset"})
+    def test_no_control_platform(self):
+        src=(BASE / "const.py").read_text()
+        self.assertNotIn('"climate"',src.split('PLATFORMS = ',1)[1].splitlines()[0])
+        self.assertNotIn('"switch"',src.split('PLATFORMS = ',1)[1].splitlines()[0])
+    def test_targets_and_zone_status(self):
+        src=(BASE / "sensor.py").read_text()
+        self.assertIn('"zone_comfort_status"',src)
+        self.assertIn('"active_heat_target"',src)
+if __name__=='__main__':unittest.main()

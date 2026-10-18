@@ -1,3 +1,11 @@
+## [1.1.0] - Gated heating/Comfort controls (initially disabled)
+
+- Added calculated Comfort heating target sensors and per-zone Comfort/Economy status.
+- Added three guarded number entities for whole-degree 15–27 °C targets.
+- SAFE WRITES ARE DISABLED BY DEFAULT pending real hardware verification.
+- No global/coil writes are permitted; strict register allowlist for TH1–TH3.
+- No cooling/Economy target control; scheduling remains a separate HA automation.
+
 ## [1.0.4] - Read-only monitoring improvements
 
 - Added DO8 (coil 4119) pump **command output** as a read-only binary sensor.

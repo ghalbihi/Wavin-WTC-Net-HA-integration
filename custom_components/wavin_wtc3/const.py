@@ -25,7 +25,12 @@ POLL_INTERVAL_SECONDS = 30
 
 # SECURITY: Read-only edition.
 # Climate and switch platforms are intentionally disabled.
-PLATFORMS = ["sensor", "binary_sensor"]
+PLATFORMS = ["sensor", "binary_sensor", "number"]
+
+# Calibrated against a physical DRT-300 in heating/Comfort mode.
+DRT300_VERIFIED_HEAT_CENTER = 21.0
+# Fail closed: no hardware writes until explicitly enabled after review.
+WAVIN_ALLOW_SETPOINT_WRITES = False
 
 PRESET_COMFORT = "comfort"
 PRESET_ECONOMY = "economy"

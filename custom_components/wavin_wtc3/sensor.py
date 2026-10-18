@@ -7,7 +7,7 @@ from typing import Callable
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.const import PERCENTAGE, UnitOfTemperature, LIGHT_LUX
 
-from .const import CONTROL_STATE_TEXT, DOMAIN
+from .const import CONTROL_STATE_TEXT, DOMAIN, DRT300_VERIFIED_HEAT_CENTER
 from .entity import WavinEntity
 
 
@@ -60,6 +60,8 @@ ZONE_SENSORS = [
     SensorDescription("cool_setpoint", "Hűtési alapjel", lambda z: z.cool_setpoint, UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE),
     SensorDescription("economy_heat_setpoint", "Economy fűtési alapjel", lambda z: z.economy_heat_setpoint, UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE),
     SensorDescription("economy_cool_setpoint", "Economy hűtési alapjel", lambda z: z.economy_cool_setpoint, UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE),
+    SensorDescription("zone_comfort_status", "Helyiségi üzemmód", lambda z: None if z.comfort is None else ("Komfort" if z.comfort else "Economy"), None, None, None, "mdi:weather-sunny"),
+    SensorDescription("active_heat_target", "Aktív fűtési célhőmérséklet", lambda z: (round(DRT300_VERIFIED_HEAT_CENTER + z.wheel_offset, 1) if z.wheel_offset is not None and z.comfort is True and z.cooling is False and z.on is True else None), UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE),
     SensorDescription("humidity", "Relatív páratartalom", lambda z: z.humidity, PERCENTAGE, SensorDeviceClass.HUMIDITY),
     SensorDescription("dewpoint", "Harmatpont", lambda z: z.dewpoint, UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE),
     SensorDescription("wheel_offset", "Potméter eltérés", lambda z: z.wheel_offset, UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE),
