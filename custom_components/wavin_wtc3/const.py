@@ -30,7 +30,9 @@ PLATFORMS = ["sensor", "binary_sensor", "number"]
 # Calibrated against a physical DRT-300 in heating/Comfort mode.
 DRT300_VERIFIED_HEAT_CENTER = 21.0
 # Fail closed: no hardware writes until explicitly enabled after review.
-WAVIN_ALLOW_SETPOINT_WRITES = False
+WAVIN_ALLOW_SETPOINT_WRITES = True
+# First field test: permit only TH2; widen after confirming physical behavior.
+WAVIN_ALLOWED_WRITE_ZONES = (2,)
 
 PRESET_COMFORT = "comfort"
 PRESET_ECONOMY = "economy"

@@ -1,3 +1,10 @@
+## [1.1.1] - Controlled TH2 field test
+
+- Enables guarded setpoint writes for **TH2 only**, whole-degree 15–27 °C, heating + Comfort only.
+- TH1 and TH3 remain read-only; no global or coil writes.
+- Reverts to v1.1.0 to disable writes immediately if verification fails.
+- First real Modbus write requires deliberate user action in HA; no automatic writes.
+
 ## [1.1.0] - Gated heating/Comfort controls (initially disabled)
 
 - Added calculated Comfort heating target sensors and per-zone Comfort/Economy status.

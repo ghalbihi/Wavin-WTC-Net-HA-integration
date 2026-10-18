@@ -12,7 +12,7 @@ def load_methods(enabled):
     cls=next(n for n in tree.body if isinstance(n,ast.ClassDef) and n.name=="WavinWTC3Api")
     methods=[copy.deepcopy(n) for n in cls.body if isinstance(n,ast.AsyncFunctionDef) and n.name in ("_call","set_safe_target")]
     module=ast.Module(body=methods,type_ignores=[]);ast.fix_missing_locations(module)
-    env={"Any":Any,"WavinWTC3Error":WavinWTC3Error,"WAVIN_ALLOW_SETPOINT_WRITES":enabled,"DRT300_VERIFIED_HEAT_CENTER":21.0,"REG_CONTROL_STATE":4135,"COIL_ZONE_STATUS_BASE":4130,"COIL_ZONE_STATUS_STRIDE":8,"REG_WHEEL_WRITE_BASE":4604}
+    env={"Any":Any,"WavinWTC3Error":WavinWTC3Error,"WAVIN_ALLOW_SETPOINT_WRITES":enabled,"DRT300_VERIFIED_HEAT_CENTER":21.0,"REG_CONTROL_STATE":4135,"COIL_ZONE_STATUS_BASE":4130,"COIL_ZONE_STATUS_STRIDE":8,"REG_WHEEL_WRITE_BASE":4604,"WAVIN_ALLOWED_WRITE_ZONES":(2,)}
     exec(compile(module,str(API_FILE),"exec"),env)
     return env
 class TestGuard(unittest.IsolatedAsyncioTestCase):
@@ -41,19 +41,24 @@ class TestGuard(unittest.IsolatedAsyncioTestCase):
         self.client.write_register.assert_not_awaited()
     async def test_offset_guard(self):
         self.api.address_offset=-1
-        with self.assertRaises(WavinWTC3Error):await self.api.set_safe_target(1,22,3)
+        with self.assertRaises(WavinWTC3Error):await self.api.set_safe_target(2,22,3)
         self.client.write_register.assert_not_awaited()
     async def test_global_economy_blocks(self):
         self.client.read_coils.side_effect=[types.SimpleNamespace(bits=[True,False,False],isError=lambda:False)]
-        with self.assertRaises(WavinWTC3Error):await self.api.set_safe_target(1,22,3)
+        with self.assertRaises(WavinWTC3Error):await self.api.set_safe_target(2,22,3)
         self.client.write_register.assert_not_awaited()
     async def test_zone_economy_blocks(self):
         self.client.read_coils.side_effect=[types.SimpleNamespace(bits=[True,True,False],isError=lambda:False),types.SimpleNamespace(bits=[True,False,False,True],isError=lambda:False)]
-        with self.assertRaises(WavinWTC3Error):await self.api.set_safe_target(1,22,3)
+        with self.assertRaises(WavinWTC3Error):await self.api.set_safe_target(2,22,3)
+        self.client.write_register.assert_not_awaited()
+    async def test_only_zone_two_eligible(self):
+        for zone in (1, 3):
+            with self.subTest(zone=zone), self.assertRaises(WavinWTC3Error):
+                await self.api.set_safe_target(zone, 23, 3)
         self.client.write_register.assert_not_awaited()
     async def test_default_disabled(self):
         env=load_methods(False)
         disabled=types.MethodType(env['set_safe_target'],self.api)
-        with self.assertRaises(WavinWTC3Error):await disabled(1,22,3)
+        with self.assertRaises(WavinWTC3Error):await disabled(2,22,3)
         self.client.write_register.assert_not_awaited()
 if __name__=='__main__':unittest.main()

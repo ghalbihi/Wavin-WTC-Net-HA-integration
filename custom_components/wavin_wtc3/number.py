@@ -5,7 +5,7 @@ from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.const import UnitOfTemperature
 from homeassistant.exceptions import HomeAssistantError
 from .api import WavinWTC3Error
-from .const import DOMAIN, DRT300_VERIFIED_HEAT_CENTER, WAVIN_ALLOW_SETPOINT_WRITES
+from .const import DOMAIN, DRT300_VERIFIED_HEAT_CENTER, WAVIN_ALLOW_SETPOINT_WRITES, WAVIN_ALLOWED_WRITE_ZONES
 from .entity import WavinEntity
 
 _LOGGER = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ class WavinTargetNumber(WavinEntity, NumberEntity):
 
     @property
     def available(self):
-        if not WAVIN_ALLOW_SETPOINT_WRITES or not super().available:
+        if not WAVIN_ALLOW_SETPOINT_WRITES or self.zone not in WAVIN_ALLOWED_WRITE_ZONES or not super().available:
             return False
         state = self.coordinator.data
         z = state.zones.get(self.zone)

@@ -340,7 +340,7 @@ class WavinWTC3Api:
             raise WavinWTC3Error("Setpoint writes disabled until field validation")
         if self.address_offset != 0:
             raise WavinWTC3Error("Write requires Modbus address offset 0")
-        if zone_count != 3 or type(zone) is not int or zone not in (1, 2, 3):
+        if zone_count != 3 or type(zone) is not int or zone not in WAVIN_ALLOWED_WRITE_ZONES:
             raise WavinWTC3Error("Write permitted only for configured TH1..TH3")
         if isinstance(temperature, bool) or not isinstance(temperature, (int, float)):
             raise WavinWTC3Error("Invalid target temperature")
