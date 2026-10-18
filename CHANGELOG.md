@@ -1,3 +1,10 @@
+## [1.1.2] - Three-zone guarded Comfort heating control
+
+- Extends the field-verified TH2 setpoint write functionality to TH1 and TH3.
+- Keeps heating + Comfort guards, 15–27 °C whole-degree limit, and Modbus register allowlist.
+- No global ON/OFF, heating/cooling or Comfort/Economy writes; no scheduled writes included.
+- TH1 and TH3 require separate physical validation before enabling HA automations.
+
 ## [1.1.1] - Controlled TH2 field test
 
 - Enables guarded setpoint writes for **TH2 only**, whole-degree 15–27 °C, heating + Comfort only.

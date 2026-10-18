@@ -9,7 +9,7 @@ class SecurityChecks(unittest.TestCase):
         values={n.targets[0].id:ast.literal_eval(n.value) for n in tree.body if isinstance(n,ast.Assign) and len(n.targets)==1 and isinstance(n.targets[0],ast.Name) and n.targets[0].id in ("PLATFORMS","WAVIN_ALLOW_SETPOINT_WRITES","WAVIN_ALLOWED_WRITE_ZONES","COIL_PUMP_OUT")}
         self.assertEqual(values["PLATFORMS"],["sensor","binary_sensor","number"])
         self.assertIs(values["WAVIN_ALLOW_SETPOINT_WRITES"],True)
-        self.assertEqual(values["WAVIN_ALLOWED_WRITE_ZONES"],(2,))
+        self.assertEqual(values["WAVIN_ALLOWED_WRITE_ZONES"],(1,2,3))
         self.assertEqual(values["COIL_PUMP_OUT"],4119)
     def test_write_methods_locked(self):
         source=(BASE / "api.py").read_text()

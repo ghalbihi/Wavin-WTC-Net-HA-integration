@@ -31,8 +31,8 @@ PLATFORMS = ["sensor", "binary_sensor", "number"]
 DRT300_VERIFIED_HEAT_CENTER = 21.0
 # Fail closed: no hardware writes until explicitly enabled after review.
 WAVIN_ALLOW_SETPOINT_WRITES = True
-# First field test: permit only TH2; widen after confirming physical behavior.
-WAVIN_ALLOWED_WRITE_ZONES = (2,)
+# Field validated: TH2 writing works; allow three configured zones with identical guards.
+WAVIN_ALLOWED_WRITE_ZONES = (1, 2, 3)
 
 PRESET_COMFORT = "comfort"
 PRESET_ECONOMY = "economy"
