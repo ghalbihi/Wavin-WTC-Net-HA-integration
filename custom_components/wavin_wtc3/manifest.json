@@ -2,7 +2,7 @@
   "domain": "wavin_wtc3",
   "name": "Wavin WTC-3 / WTC-NET",
   "codeowners": [
-    "@trtk1992"
+    "@ghalbihi"
   ],
   "config_flow": true,
   "dependencies": [],
