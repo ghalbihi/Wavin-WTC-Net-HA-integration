@@ -25,7 +25,7 @@ POLL_INTERVAL_SECONDS = 30
 
 # SECURITY: Read-only edition.
 # Climate and switch platforms are intentionally disabled.
-PLATFORMS = ["sensor"]
+PLATFORMS = ["sensor", "binary_sensor"]
 
 PRESET_COMFORT = "comfort"
 PRESET_ECONOMY = "economy"
@@ -99,6 +99,7 @@ COIL_LOCK_READ_BASE = 4186
 
 # DO/status coils.
 COIL_DO_BASE = 4112
+COIL_PUMP_OUT = 4119  # DO8: pump control output (read-only)
 COIL_HEAT_OUT = 4120
 COIL_COOL_OUT = 4121
 COIL_EMERGENCY_WATER_TEMP = 4125

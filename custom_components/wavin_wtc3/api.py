@@ -60,6 +60,7 @@ class WavinState:
     global_on: bool | None = None
     global_comfort: bool | None = None
     global_cooling: bool | None = None
+    pump_output: bool | None = None
     heat_output: bool | None = None
     cool_output: bool | None = None
     emergency_water_temp: bool | None = None
@@ -357,11 +358,13 @@ class WavinWTC3Api:
         
         status_bits = await self.read_coils_chunked(COIL_ZONE_STATUS_BASE, COIL_ZONE_STATUS_STRIDE * zone_count)
         lock_bits = await self.read_coils_chunked(COIL_LOCK_READ_BASE, zone_count)
-        fault_bits = await self.read_coils_chunked(COIL_HEAT_OUT, 7)
-        state.heat_output = fault_bits[0]
-        state.cool_output = fault_bits[1]
-        state.emergency_water_temp = fault_bits[5]
-        state.water_sensor_fault = fault_bits[6]
+        # DO8 pump + DO9 heat + DO10 cool + status/fault bits (4119..4126).
+        output_bits = await self.read_coils_chunked(COIL_PUMP_OUT, 8)
+        state.pump_output = output_bits[0]
+        state.heat_output = output_bits[1]
+        state.cool_output = output_bits[2]
+        state.emergency_water_temp = output_bits[6]
+        state.water_sensor_fault = output_bits[7]
 
         for zone in range(1, zone_count + 1):
             z = ZoneState(index=zone)

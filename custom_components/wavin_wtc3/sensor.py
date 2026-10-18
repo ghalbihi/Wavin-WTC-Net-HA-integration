@@ -30,7 +30,7 @@ class SensorDescription:
 
 
 SYSTEM_SENSORS = [
-    SensorDescription("water_temp", "Vízhőmérséklet", lambda data: data.water_temp, UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE),
+    SensorDescription("water_temp", "Előremenő vízhőmérséklet", lambda data: data.water_temp, UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE),
     SensorDescription("wtc_room_temp", "WTC helyiség-hőmérséklet", lambda data: data.wtc_room_temp, UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE),
     SensorDescription("wtc_humidity", "WTC relatív páratartalom", lambda data: data.wtc_humidity, PERCENTAGE, SensorDeviceClass.HUMIDITY),
     SensorDescription("dewpoint", "Harmatpont", lambda data: data.dewpoint, UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE),
@@ -48,10 +48,18 @@ SYSTEM_SENSORS = [
         list(CONTROL_STATE_TEXT.values()),
     ),
     SensorDescription("firmware", "Firmware", lambda data: data.firmware, None, None, None, "mdi:chip"),
+    SensorDescription("global_on", "Rendszer állapota", lambda data: None if data.global_on is None else ("Bekapcsolva" if data.global_on else "Kikapcsolva"), None, None, None, "mdi:power"),
+    SensorDescription("global_comfort", "Üzemmód", lambda data: None if data.global_comfort is None else ("Komfort" if data.global_comfort else "Economy"), None, None, None, "mdi:weather-sunny"),
 ]
 
 ZONE_SENSORS = [
     SensorDescription("temperature", "Helyiség-hőmérséklet", lambda z: z.temperature, UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE),
+    # WTC-3 setpoint registers. These are NOT necessarily the effective
+    # DRT-300 knob-adjusted target temperatures; compare on actual hardware.
+    SensorDescription("heat_setpoint", "Fűtési alapjel", lambda z: z.heat_setpoint, UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE),
+    SensorDescription("cool_setpoint", "Hűtési alapjel", lambda z: z.cool_setpoint, UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE),
+    SensorDescription("economy_heat_setpoint", "Economy fűtési alapjel", lambda z: z.economy_heat_setpoint, UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE),
+    SensorDescription("economy_cool_setpoint", "Economy hűtési alapjel", lambda z: z.economy_cool_setpoint, UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE),
     SensorDescription("humidity", "Relatív páratartalom", lambda z: z.humidity, PERCENTAGE, SensorDeviceClass.HUMIDITY),
     SensorDescription("dewpoint", "Harmatpont", lambda z: z.dewpoint, UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE),
     SensorDescription("wheel_offset", "Potméter eltérés", lambda z: z.wheel_offset, UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE),

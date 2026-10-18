@@ -1,3 +1,13 @@
+## [1.0.4] - Read-only monitoring improvements
+
+- Added DO8 (coil 4119) pump **command output** as a read-only binary sensor.
+- Added heating/cooling Comfort/Economy reference setpoint sensors for each zone.
+- Added system ON/OFF and Comfort/Economy status as read-only text sensors.
+- Renamed water temperature to forward/supply water temperature.
+- Read-only Modbus guard remains unchanged; no control/write operations enabled.
+- Caution: these setpoint registers may not equal the effective DRT-300 wheel-adjusted target.
+- Caution: DO8 reports the pump control output, not verified physical water flow.
+
 # Changelog
 
 ## [1.0.3] - 2026-10-17

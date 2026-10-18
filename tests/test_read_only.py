@@ -187,9 +187,30 @@ class TestReadOnlyPlatforms(unittest.TestCase):
 
         self.assertEqual(
             platforms,
-            ["sensor"],
-            "Read-only edition must enable sensor platform only",
+            ["sensor", "binary_sensor"],
+            "Read-only edition must enable only sensor and binary_sensor platforms",
         )
         
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestPumpMapping(unittest.TestCase):
+    """Static regression checks for DO8 indexing and no write regression."""
+
+    def test_pump_address_and_read_mapping(self):
+        const_file = API_FILE.with_name("const.py")
+        const_tree = ast.parse(const_file.read_text(encoding="utf-8"))
+        constants = {}
+        for node in const_tree.body:
+            if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+                if node.targets[0].id == "COIL_PUMP_OUT":
+                    constants[node.targets[0].id] = ast.literal_eval(node.value)
+        self.assertEqual(constants["COIL_PUMP_OUT"], 4119)
+        api_source = API_FILE.read_text(encoding="utf-8")
+        self.assertIn("read_coils_chunked(COIL_PUMP_OUT, 8)", api_source)
+        self.assertIn("state.pump_output = output_bits[0]", api_source)
+        self.assertIn("state.heat_output = output_bits[1]", api_source)
+        self.assertIn("state.cool_output = output_bits[2]", api_source)
+        self.assertIn("state.emergency_water_temp = output_bits[6]", api_source)
+        self.assertIn("state.water_sensor_fault = output_bits[7]", api_source)
